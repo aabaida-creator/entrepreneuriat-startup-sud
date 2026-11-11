@@ -754,7 +754,8 @@ function simulate(s0, det) {
     attract, cash: s.cash, debt: debtLeft(s), mvpNow, receivables: s.receivables + s.future.reduce((a, f) => a + f.amount, 0),
     coca: gained > 0 ? (R.mkt + d.sales * sc.salesSalary * 3) / gained : null,
     ltv: churn > 0 ? ((d.sub - sc.sub.cost) * 3 / churn + (sc.hasUnit ? d.unit - unitCost : 0)) : null,
-    founderShare: s.founderShare, staff: { ...s.staff }
+    founderShare: s.founderShare, staff: { ...s.staff },
+    dec: { unit: d.unit, sub: d.sub, mkt: d.mkt, rd: d.rd, interviews: d.interviews, pay: d.pay, sales: d.sales, tech: d.tech }
   });
   return { s, R };
 }
@@ -835,14 +836,25 @@ function summaryText(s) {
 const TOKEN_SALT = 'FEGG-SS-2026';
 function b64enc(str) { return (typeof btoa === 'function' ? btoa(unescape(encodeURIComponent(str))) : Buffer.from(str, 'utf8').toString('base64')).replace(/=+$/, ''); }
 function b64dec(str) { const pad = str + '==='.slice((str.length + 3) % 4); return typeof atob === 'function' ? decodeURIComponent(escape(atob(pad))) : Buffer.from(pad, 'base64').toString('utf8'); }
+/* colonnes du détail trimestriel (ordre fixe) */
+const HCOLS = ['t', 'CA', 'res', 'cash', 'cli', 'new', 'lost', 'churn', 'q', 'unit', 'sub', 'mkt', 'rd', 'intv', 'pay', 'sales', 'tech'];
+function financings(s) {
+  const out = [];
+  for (const l of s.loans) out.push([l.name === 'Crédit Intelaka' ? 'I' : l.name === 'Prêt Start-TPE' ? 'P' : 'H', l.start, Math.round(l.amount)]);
+  if (s.techStart) out.push(['S', s.techStart.t, Math.round(s.techStart.used)]);
+  if (s.angel) out.push(['A', s.angel.t, Math.round(s.angel.invest), Math.round(s.angel.share * 1000)]);
+  return out;
+}
 function resultToken(s) {
   const f = finalScore(s);
-  const p = JSON.stringify({ e: (s.equipe || '').slice(0, 40), c: s.code, s: s.scen, v: f.value, n: f.clients, ca: Math.round(f.caTot), r: Math.round(f.resTot), ok: f.survived ? 1 : 0, fp: f.firstProfit || 0, q: s.interviews });
-  return 'SS1.' + b64enc(p) + '.' + hashStr(TOKEN_SALT + p).toString(36);
+  const h = s.hist.map(R => { const d = R.dec || {}; return [R.t, R.CA, R.result, R.cash, R.clients, R.newC + (R.dealC || 0), R.lost, R.churn * 1000, R.quality, d.unit, d.sub, d.mkt, d.rd, d.interviews, d.pay, d.sales, d.tech].map(v => Math.round(v || 0)); });
+  const p = JSON.stringify({ e: (s.equipe || '').slice(0, 40), c: s.code, s: s.scen, v: f.value, n: f.clients, ca: Math.round(f.caTot), r: Math.round(f.resTot), ok: f.survived ? 1 : 0, fp: f.firstProfit || 0, q: s.interviews,
+    st: s.statut, fs: Math.round(f.founderShare * 1000), inc: s.incub ? 1 : 0, ap: s.apport, fin: financings(s), h });
+  return 'SS2.' + b64enc(p) + '.' + hashStr(TOKEN_SALT + p).toString(36);
 }
 function parseTokens(text) {
   const out = [], seen = new Set();
-  const re = /SS1\.([A-Za-z0-9+/]+)\.([a-z0-9]+)/g; let m;
+  const re = /SS[12]\.([A-Za-z0-9+/]+)\.([a-z0-9]+)/g; let m;
   while ((m = re.exec(String(text)))) {
     if (seen.has(m[0])) continue; seen.add(m[0]);
     try { const p = b64dec(m[1]); const d = JSON.parse(p); d.valid = hashStr(TOKEN_SALT + p).toString(36) === m[2]; d.raw = m[0]; out.push(d); } catch (e) { out.push({ valid: false, raw: m[0] }); }
@@ -850,7 +862,7 @@ function parseTokens(text) {
   return out;
 }
 
-const ENGINE = { parseTokens, resultToken, SCEN, EVENTS, SAVINGS, newGame, startQuarter, chooseEvent, simulate, endQuarter, nextQuarter, eligibility, estimates, finalScore, debrief, summaryText,
+const ENGINE = { HCOLS, parseTokens, resultToken, SCEN, EVENTS, SAVINGS, newGame, startQuarter, chooseEvent, simulate, endQuarter, nextQuarter, eligibility, estimates, finalScore, debrief, summaryText,
   actApport, actIncub, actSARL, actIntelaka, actTechStart, actHonneur, actAngel, angelPreMoney, intelakaProb, techStartProb, honneurProb, debtLeft, truth, fmt, clamp, clone };
 if (typeof module !== 'undefined') module.exports = ENGINE;
 
@@ -1260,16 +1272,17 @@ function chart(id, type, labels, series, opts = {}) {
   } else {
     series.forEach(s => {
       const pts = s.values.map((v, i) => `${x(i)},${y(v)}`);
-      marks += `<polyline points="${pts.join(' ')}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+      marks += `<polyline points="${pts.join(' ')}" fill="none" stroke="${s.color}" stroke-width="${s.width || 2}"${s.dash ? ` stroke-dasharray="${s.dash}"` : ''} stroke-linejoin="round" stroke-linecap="round"/>`;
       const li = s.values.length - 1;
-      if (li >= 0) {
+      if (li >= 0 && s.dot !== false) {
         marks += `<circle cx="${x(li)}" cy="${y(s.values[li])}" r="4" fill="${s.color}" stroke="var(--surface)" stroke-width="2"/>`;
         if (opts.endLabel) marks += `<text x="${Math.min(x(li), W - Rr)}" y="${y(s.values[li]) - 9}" text-anchor="${li > n / 2 ? 'end' : 'middle'}" font-size="11.5" fill="var(--ink)" font-family="IBM Plex Mono" font-weight="500">${opts.endLabel(s.values[li])}</text>`;
       }
     });
   }
   const hits = labels.map((_, i) => `<rect class="hit" data-i="${i}" x="${L + bw * i}" y="${T}" width="${bw}" height="${ih}" fill="transparent"/>`).join('');
-  const legend = series.length > 1 ? `<div class="legend">${series.map(s => `<span><i style="background:${s.color}"></i>${s.name}</span>`).join('')}</div>` : '';
+  const leg = []; series.forEach(s => { if (!leg.some(l => l.name === s.name)) leg.push(s); });
+  const legend = leg.length > 1 ? `<div class="legend">${leg.map(s => `<span><i style="background:${s.color}${s.dash ? ';height:3px;vertical-align:3px' : ''}"></i>${esc(s.name)}</span>`).join('')}</div>` : '';
   return `<div class="chart" data-chart="${id}"><h4 style="font-size:14px;margin-bottom:4px">${opts.title}</h4>${legend}
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${opts.title}">${g}<g class="hover"></g>${marks}${hits}</svg><div class="tip"></div></div>`;
 }
@@ -1279,10 +1292,10 @@ function bindCharts() {
     const show = i => {
       const r = $(`rect[data-i="${i}"]`, el), bb = r.getBBox();
       hov.innerHTML = `<rect x="${bb.x}" y="${bb.y}" width="${bb.width}" height="${bb.height}" fill="var(--accent-soft)" opacity=".7"/>`;
-      tip.innerHTML = `<b>${c.labels[i]}</b>` + c.series.map(s => `<div><span>${s.name}</span><span class="num">${(c.opts.fmt || fmt)(s.values[i])}</span></div>`).join('');
+      tip.innerHTML = `<b>${c.labels[i]}</b>` + c.series.filter(s => s.tip !== false && s.values[i] != null).map(s => `<div><span>${esc(s.name)}</span><span class="num">${(c.opts.fmt || fmt)(s.values[i])}</span></div>`).join('');
       tip.style.display = 'block';
       const sr = svg.getBoundingClientRect(), scale = sr.width / CW, left = (bb.x + bb.width / 2) * scale;
-      const tw = tip.offsetWidth; tip.style.left = Math.max(0, Math.min(sr.width - tw, left - tw / 2)) + 'px'; tip.style.top = (svg.offsetTop + 4) + 'px';
+      const tw = tip.offsetWidth; tip.style.left = Math.max(0, Math.min(sr.width - tw, left - tw / 2)) + 'px'; tip.style.top = (sr.top - el.getBoundingClientRect().top + 6) + 'px';
     };
     const hide = () => { tip.style.display = 'none'; hov.innerHTML = ''; };
     el.querySelectorAll('.hit').forEach(r => { r.addEventListener('mouseenter', () => show(+r.dataset.i)); r.addEventListener('click', () => show(+r.dataset.i)); });
@@ -1385,7 +1398,7 @@ function renderEnd() {
     </div>
     ${localMode() ? `<div class="card pad stack">
       <h3>Transmettre votre résultat</h3>
-      <p class="small muted">Envoyez la fiche à votre enseignant (copie ou fichier texte). Sa dernière ligne contient un code de contrôle : l’enseignant le colle dans l’onglet Classement pour établir le classement de la classe. Toute modification des chiffres rend le code invalide.</p>
+      <p class="small muted">Envoyez la fiche à votre enseignant (copie ou fichier texte). Sa dernière ligne contient un code de contrôle qui résume toute votre partie (résultats et décisions des 12 trimestres) : l’enseignant le colle dans l’onglet Classement pour classer et comparer les groupes. Toute modification rend le code invalide.</p>
       <div class="row"><button class="btn primary" id="dl">Télécharger la fiche (.txt)</button><button class="btn" id="seeBoard">Voir mes parties</button></div>
       <hr style="border:0;border-top:1px solid var(--line);margin:8px 0">
       <div class="row"><button class="btn" id="replay">Rejouer avec le même code</button><button class="btn ghost" id="newgame">Nouvelle partie</button></div>
@@ -1452,7 +1465,7 @@ function renderLocalBoard() {
   <div class="topbar"><h2>Classement</h2>${boardTabs()}</div>
   <div class="card pad stack" style="margin-bottom:18px">
     <h3>Classement de la classe (enseignant)</h3>
-    <p class="small muted">Collez ci-dessous les fiches de résultat reçues des étudiants, toutes à la suite, puis calculez le classement. Seule la ligne « Code de contrôle » est lue ; une fiche dont les chiffres ont été modifiés est rejetée. Les données restent dans ce navigateur.</p>
+    <p class="small muted">Collez ci-dessous les fiches de résultat reçues des groupes, toutes à la suite, puis calculez le classement. Vous obtenez le classement, la comparaison trimestre par trimestre et les exports CSV. Seule la ligne « Code de contrôle » est lue ; une fiche dont les chiffres ont été modifiés est rejetée. Les données restent dans ce navigateur.</p>
     <textarea class="fiche" id="classText" placeholder="Collez ici une ou plusieurs fiches de résultat…">${esc(classText)}</textarea>
     <div class="row"><button class="btn primary" id="calc">Calculer le classement</button><button class="btn" id="csv" ${rows.length ? '' : 'disabled'}>Exporter en CSV</button><button class="btn ghost" id="clear">Effacer</button>
       <span class="small muted">${classRows ? `${classRows.length - invalid} fiche(s) valide(s)${invalid ? `, ${invalid} rejetée(s)` : ''}` : ''}</span></div>
@@ -1467,7 +1480,8 @@ function renderLocalBoard() {
     </div></div>
   <div class="card" style="margin-bottom:18px">${rows.length ? `<div class="tblwrap"><table class="t lb"><thead><tr><th>Rang</th><th style="text-align:left">Équipe</th><th style="text-align:left">Projet</th><th>Code</th><th>Valeur fondateurs</th><th>Clients</th><th>CA cumulé</th><th>Résultat cumulé</th><th>Issue</th></tr></thead><tbody>
     ${rows.map((r, i) => `<tr><td class="rank">${i + 1}</td><td style="text-align:left">${esc(r.e || 'Sans nom')}</td><td style="text-align:left">${S[r.s].name}</td><td class="num">${esc(r.c)}</td><td class="num">${fmtN(r.v)}</td><td class="num">${fmtN(r.n)}</td><td class="num">${fmtN(r.ca)}</td><td class="num ${r.r < 0 ? 'neg' : ''}">${fmtN(r.r)}</td><td>${r.ok ? '<span class="chip good">En activité</span>' : '<span class="chip bad">Faillite</span>'}</td></tr>`).join('')}
-    </tbody></table></div>` : '<div class="pad muted">Aucune fiche valide pour ce filtre.</div>'}</div>` : ''}
+    </tbody></table></div>` : '<div class="pad muted">Aucune fiche valide pour ce filtre.</div>'}</div>
+  ${compareHTML(rows)}` : ''}
   <div class="card pad stack">
     <h3>Mes parties sur cet appareil</h3>
     ${myGames.length ? `<div class="tblwrap"><table class="t"><thead><tr><th>Date</th><th style="text-align:left">Équipe</th><th style="text-align:left">Projet</th><th>Code</th><th>Valeur fondateurs</th><th>Clients</th><th>Issue</th></tr></thead><tbody>
@@ -1485,6 +1499,64 @@ function renderLocalBoard() {
   };
   app.querySelectorAll('[data-bf]').forEach(b => b.onclick = () => { boardFilter.scen = b.dataset.bf; renderLocalBoard(); });
   const bc = $('#bcode'); if (bc) bc.onchange = e => { boardFilter.code = e.target.value; renderLocalBoard(); };
+  app.querySelectorAll('[data-cm]').forEach(b => b.onclick = () => { cmp.metric = b.dataset.cm; const y = window.scrollY; renderLocalBoard(); window.scrollTo({ top: y }); });
+  const ct = $('#cmpTeam'); if (ct) ct.onchange = e => { cmp.team = e.target.value; const y = window.scrollY; renderLocalBoard(); window.scrollTo({ top: y }); };
+  const cd = $('#csvDetail'); if (cd) cd.onclick = () => {
+    const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+    const head = ['Équipe', 'Projet', 'Code', 'Rang final', 'Trimestre', 'CA (DH)', 'Résultat net (DH)', 'Trésorerie fin (DH)', 'Clients actifs', 'Nouveaux clients', 'Départs', 'Taux de départ (%)', 'Qualité', 'Prix boîtier (DH)', 'Abonnement mensuel (DH)', 'Marketing (DH)', 'R&D (DH)', 'Entretiens', 'Rémunération fondateur (DH/mois)', 'Commerciaux', 'Techniciens'];
+    const lines = [head.map(q).join(';')];
+    rows.forEach((r, ri) => (r.h || []).forEach(h => {
+      const d = Object.fromEntries(E.HCOLS.map((k, i) => [k, h[i]]));
+      lines.push([r.e, S[r.s].name, r.c, ri + 1, 'T' + d.t, d.CA, d.res, d.cash, d.cli, d.new, d.lost, (d.churn / 10).toFixed(1).replace('.', ','), d.q, S[r.s].hasUnit ? d.unit : '', d.sub, d.mkt, d.rd, d.intv, d.pay, d.sales, d.tech].map(q).join(';'));
+    }));
+    downloadText('detail-trimestres-startup-sud.csv', '\ufeff' + lines.join('\r\n'), 'text/csv');
+  };
+  bindCharts();
+}
+
+/* comparaison des groupes (fiches enrichies) */
+const cmp = { metric: 'cash', team: '' };
+const METRICS = { cash: ['Trésorerie en fin de trimestre (DH)', 'cash', fmt], CA: ['Chiffre d’affaires par trimestre (DH)', 'CA', fmt], res: ['Résultat net par trimestre (DH)', 'res', fmt], cli: ['Clients actifs', 'cli', fmtN], churn: ['Taux de départ trimestriel (%)', 'churn', v => (v / 10).toFixed(1).replace('.', ',') + ' %'], q: ['Qualité perçue (sur 100)', 'q', fmtN] };
+const FIN = { I: 'Intelaka', P: 'Start-TPE', H: 'Prêt d’honneur', S: 'Tech Start', A: 'Business angel' };
+function col(r, k) { const i = E.HCOLS.indexOf(k); return (r.h || []).map(h => h[i]); }
+function compareHTML(rows) {
+  const det = rows.filter(r => Array.isArray(r.h) && r.h.length);
+  const old = rows.length - det.length;
+  if (!det.length) return `<div class="card pad" style="margin-bottom:18px">${note('info', 'Ces fiches viennent d’une ancienne version du jeu : elles ne contiennent que le bilan final. Les fiches des nouvelles parties contiennent aussi le détail des 12 trimestres.')}</div>`;
+  if (!det.some(r => r.raw === cmp.team)) cmp.team = det[0].raw;
+  const sel = det.find(r => r.raw === cmp.team), [title, key, f] = METRICS[cmp.metric];
+  const labels = Array.from({ length: 12 }, (_, i) => 'T' + (i + 1));
+  const others = det.filter(r => r !== sel).map(r => ({ name: 'Autres groupes', color: 'var(--line-2)', width: 1.25, dot: false, tip: false, values: col(r, key) }));
+  const med = labels.map((_, i) => { const v = det.map(r => col(r, key)[i]).filter(x => x != null).sort((a, b) => a - b); return v.length ? (v.length % 2 ? v[(v.length - 1) / 2] : (v[v.length / 2 - 1] + v[v.length / 2]) / 2) : null; });
+  const medN = med.findIndex(v => v == null); const medVals = medN === -1 ? med : med.slice(0, medN);
+  CW = Math.max(300, Math.min(1100, app.clientWidth - 42));
+  const series = [...others, ...(det.length > 1 ? [{ name: 'Médiane de la classe', color: 'var(--s2)', width: 2, dash: '6 4', dot: false, values: medVals }] : []), { name: sel.e || 'Sans nom', color: 'var(--s1)', width: 2.5, values: col(sel, key) }];
+  const mixed = new Set(det.map(r => r.s + '|' + r.c)).size > 1;
+  const sum = (r, k) => col(r, k).reduce((a, v) => a + v, 0), avg = (r, k) => { const c = col(r, k); return c.length ? sum(r, k) / c.length : 0; };
+  return `<div class="card" style="margin-bottom:18px">
+    <div class="panel-h"><h3>Comparaison des groupes</h3><button class="btn" id="csvDetail">Exporter le détail par trimestre (CSV)</button></div>
+    <div class="pad stack">
+      ${mixed ? note('warn', 'Plusieurs projets ou codes de partie sont mélangés : filtrez par projet et par code pour une comparaison équitable.') : ''}
+      ${old ? note('info', `${old} fiche(s) d’une ancienne version, sans détail trimestriel, ne figurent pas dans cette comparaison.`) : ''}
+      <div class="row" style="gap:14px">
+        <div class="seg" role="group" aria-label="Indicateur">${Object.entries(METRICS).map(([k, m]) => `<button data-cm="${k}" aria-pressed="${cmp.metric === k}">${m[0].split(' (')[0].replace(' en fin de trimestre', '').replace(' par trimestre', '')}</button>`).join('')}</div>
+        <label class="row small" style="gap:8px">Groupe mis en évidence <select id="cmpTeam" class="text" style="width:auto;min-height:38px">${det.map(r => `<option value="${esc(r.raw)}" ${r === sel ? 'selected' : ''}>${esc(r.e || 'Sans nom')}</option>`).join('')}</select></label>
+      </div>
+      ${chart('cmp', 'line', labels, series, { title, fmt: f })}
+      <p class="tiny">Le groupe choisi est en trait plein foncé, la médiane de la classe en pointillés, les autres groupes en gris. Survolez un trimestre pour lire les valeurs.</p>
+    </div>
+    <div class="sect" style="border-top:1px solid var(--line)"><h4>Décisions et financements par groupe</h4>
+      <div class="tblwrap"><table class="t"><thead><tr><th>Équipe</th><th>Statut</th><th>Incubé</th><th>Apport</th><th>Abonnement moyen</th><th>Marketing cumulé</th><th>R&D cumulée</th><th>Entretiens</th><th>Équipe finale</th><th>Rémun. fondateur moyenne</th><th>1<sup>er</sup> bénéfice</th><th>Trésorerie la plus basse</th><th style="text-align:left">Financements obtenus</th></tr></thead><tbody>
+      ${det.map(r => { const last = r.h[r.h.length - 1], d = Object.fromEntries(E.HCOLS.map((k, i) => [k, last[i]])); return `<tr${r === sel ? ' style="font-weight:600"' : ''}>
+        <td>${esc(r.e || 'Sans nom')}</td><td>${r.st === 'SARL' ? 'SARL' : 'AE'}</td><td>${r.inc ? 'oui' : 'non'}</td><td class="num">${fmtN(r.ap || 0)}</td>
+        <td class="num">${fmtN(avg(r, 'sub'))}</td><td class="num">${fmtN(sum(r, 'mkt'))}</td><td class="num">${fmtN(sum(r, 'rd'))}</td><td class="num">${fmtN(sum(r, 'intv'))}</td>
+        <td class="num">${d.sales} com. · ${d.tech} tech.</td><td class="num">${fmtN(avg(r, 'pay'))}</td><td class="num">${r.fp ? 'T' + r.fp : '—'}</td>
+        <td class="num ${Math.min(...col(r, 'cash')) < 0 ? 'neg' : ''}">${fmtN(Math.min(...col(r, 'cash')))}</td>
+        <td style="text-align:left;white-space:normal;min-width:220px">${(r.fin || []).length ? r.fin.map(x => `${FIN[x[0]] || x[0]} ${fmtK(x[2])} DH (T${x[1]})${x[0] === 'A' ? ` · ${(x[3] / 10).toFixed(1).replace('.', ',')} % cédés` : ''}`).join(' ; ') : 'aucun'}</td></tr>`; }).join('')}
+      </tbody></table></div>
+      <p class="tiny" style="margin-top:8px">Montants en dirhams. Abonnement moyen : prix mensuel moyen sur la partie. Équipe finale : commerciaux et techniciens au dernier trimestre.</p>
+    </div>
+  </div>`;
 }
 
 async function initShared() {
