@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="description" content="Startup Souss : simulation d’entrepreneuriat en 12 trimestres pour les Licences SDSI et GEII, FEGG Guelmim, Université Ibn Zohr.">
+<meta name="description" content="Start-up Sud : simulation d’entrepreneuriat en 12 trimestres pour les Bachelors SDSI et GEII, FEGG Guelmim, Université Ibn Zohr.">
 <meta name="theme-color" content="#002147">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 34 34'%3E%3Crect width='34' height='34' rx='8' fill='%23002147'/%3E%3Cpath d='M7 24 L13 17 L18 20 L27 10' fill='none' stroke='white' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
-<title>Startup Souss</title>
+<title>Entrepreneuriat · Start-up Sud</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
@@ -291,7 +291,7 @@ textarea.fiche{width:100%;min-height:170px;font:13px/1.5 "IBM Plex Mono",monospa
   <div class="wrap">
     <div class="brand">
       <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><rect width="34" height="34" rx="8" fill="#FFFFFF" fill-opacity=".1"/><path d="M7 24 L13 17 L18 20 L27 10" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="27" cy="10" r="2.6" fill="#8FA7C7"/></svg>
-      <div><b>Startup Souss</b><small>Simulation d’entrepreneuriat · FEGG Guelmim · Université Ibn Zohr</small></div>
+      <div><b>Start-up Sud</b><small>Simulation d’entrepreneuriat · FEGG Guelmim · Université Ibn Zohr</small></div>
     </div>
     <nav class="tabs" aria-label="Sections">
       <button data-nav="play" aria-current="page">Jouer</button>
@@ -302,10 +302,10 @@ textarea.fiche{width:100%;min-height:170px;font:13px/1.5 "IBM Plex Mono",monospa
 </header>
 <main><div class="wrap" id="app"></div></main>
 <script>
-/* Startup Souss – moteur de simulation (pur, sans DOM) */
+/* Start-up Sud – moteur de simulation (pur, sans DOM) */
 const SCEN = {
   solar: {
-    id: 'solar', name: 'SolarWatch Souss', filiere: 'GEII', tag: 'Objet connecté · matériel + abonnement',
+    id: 'solar', name: 'SolarWatch Sud', filiere: 'GEII', tag: 'Objet connecté · matériel + abonnement',
     pitch: 'Un boîtier connecté surveille les pompes solaires d’irrigation et alerte l’agriculteur par SMS en cas de panne ou de baisse de rendement.',
     client: 'exploitations', market: 6000, hasUnit: true,
     unit: { def: 2500, min: 1200, max: 4500, step: 100, cost: 1100, label: 'Prix du boîtier' },
@@ -316,7 +316,7 @@ const SCEN = {
     mvpLabel: 'Prototype industrialisable', priceLabel: 'boîtier + 12 mois d’abonnement'
   },
   agri: {
-    id: 'agri', name: 'AgriData Souss', filiere: 'SDSI', tag: 'Plateforme de données · abonnement',
+    id: 'agri', name: 'AgriData Sud', filiere: 'SDSI', tag: 'Plateforme de données · abonnement',
     pitch: 'Une plateforme prévoit rendements et besoins en eau à partir d’images satellites et de données météo, pour les coopératives et les exploitations moyennes.',
     client: 'coopératives et exploitations', market: 1800, hasUnit: false,
     sub: { def: 450, min: 100, max: 1500, step: 25, cost: 45, label: 'Abonnement mensuel' },
@@ -326,8 +326,8 @@ const SCEN = {
     mvpLabel: 'Version minimale (MVP)', priceLabel: '12 mois d’abonnement'
   },
   maint: {
-    id: 'maint', name: 'MaintiPro Agadir', filiere: 'GEII · SDSI', tag: 'Services aux industriels · contrats',
-    pitch: 'Une équipe assure la maintenance préventive et prédictive des moteurs et équipements des stations de conditionnement et usines agroalimentaires d’Agadir.',
+    id: 'maint', name: 'MaintiPro Guelmim-Oued Noun', filiere: 'GEII · SDSI', tag: 'Services aux industriels · contrats',
+    pitch: 'Une équipe assure la maintenance préventive et prédictive des moteurs et équipements des unités de traitement du poisson, conserveries, stations de dessalement et unités agroalimentaires de la région Guelmim-Oued Noun.',
     client: 'sites industriels', market: 320, hasUnit: false,
     sub: { def: 3000, min: 1000, max: 8000, step: 100, cost: 900, label: 'Contrat mensuel par site' },
     refAnnual: 36000, elast: 1.6, conv: 0.12, mktScale: 40000, founderCap: 4, salesCap: 4, installCap: 999, serveCap: 6,
@@ -356,7 +356,7 @@ function newGame(cfg) {
   const sc = SCEN[cfg.scen];
   const apport = clamp(Math.round(cfg.apport), 20000, 150000);
   const s = {
-    v: 1, scen: sc.id, code: String(cfg.code || 'SOUSS').toUpperCase(), equipe: String(cfg.equipe || '').slice(0, 40),
+    v: 1, scen: sc.id, code: String(cfg.code || 'SUD').toUpperCase(), equipe: String(cfg.equipe || '').slice(0, 40),
     statut: cfg.statut === 'SARL' ? 'SARL' : 'AE', incub: !!cfg.incub, t: 1, phase: 'decide',
     cash: apport - (cfg.statut === 'SARL' ? SARL_FEES : 0), apport, savings: SAVINGS - apport, founderShare: 1,
     clients: 0, A: 0.03, quality: sc.q0, rdCum: 0, mvp: sc.protoCost === 0, interviews: 0, intvBeforeMvp: 0,
@@ -382,7 +382,7 @@ function modAdd(s, t, type) { return modsAt(s, t).filter(m => m.type === type).r
 
 /* ---------- Événements ---------- */
 const EVENTS = [
-  { id: 'secheresse', scen: ['solar', 'agri'], title: 'Sécheresse sévère dans le Souss',
+  { id: 'secheresse', scen: ['solar', 'agri'], title: 'Sécheresse sévère dans le Sud',
     text: 'Les nappes baissent et les agriculteurs cherchent à économiser l’eau et l’énergie. La demande pour votre solution augmente de 30 % pendant deux trimestres.',
     auto: s => addMod(s, 'demand', { mult: 1.3 }, s.t, s.t + 1) },
   { id: 'composants', scen: ['solar'], title: 'Pénurie de composants électroniques',
@@ -820,7 +820,7 @@ function debrief(s) {
 function summaryText(s) {
   const sc = SCEN[s.scen], f = finalScore(s);
   return [
-    `Startup Souss · ${sc.name}`,
+    `Start-up Sud · ${sc.name}`,
     `Équipe : ${s.equipe || 'non renseignée'} · Code de partie : ${s.code}`,
     `Issue : ${f.survived ? 'entreprise en activité après 12 trimestres' : 'cessation de paiements en T' + f.quarters}`,
     `Valeur des parts des fondateurs : ${fmt(f.value)} (part détenue ${Math.round(f.founderShare * 100)} %)`,
@@ -855,7 +855,7 @@ const ENGINE = { parseTokens, resultToken, SCEN, EVENTS, SAVINGS, newGame, start
 if (typeof module !== 'undefined') module.exports = ENGINE;
 
 (() => {
-/* Startup Souss – interface */
+/* Start-up Sud – interface */
 const E = ENGINE, S = E.SCEN;
 const STANDALONE = !!window.__STANDALONE__;
 /* mode local : version autonome, ou page ouverte hors de l’organisation (pas de base partagée) */
@@ -879,7 +879,7 @@ const note = (k, x) => `<div class="note ${k}">${ICON[k] || ICON.info}<div>${x}<
 /* ---------- état et sauvegarde ---------- */
 const SAVE_KEY = 'startupsouss.save.v1';
 let G = null, view = 'play', dashTab = 'charts', confirmKey = null;
-let cfg = { scen: 'solar', equipe: '', code: 'SOUSS-2026', apport: 100000, statut: 'AE', incub: false };
+let cfg = { scen: 'solar', equipe: '', code: 'SUD-2026', apport: 100000, statut: 'AE', incub: false };
 function save() { try { if (G) localStorage.setItem(SAVE_KEY, JSON.stringify(G)); else localStorage.removeItem(SAVE_KEY); } catch (e) {} }
 function loadSave() { try { const v = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); return v && v.v === 1 && S[v.scen] ? v : null; } catch (e) { return null; } }
 try { const c = JSON.parse(localStorage.getItem('startupsouss.cfg') || 'null'); if (c) cfg = Object.assign(cfg, c); } catch (e) {}
@@ -903,8 +903,8 @@ function renderSetup() {
   app.innerHTML = `
   <section class="hero">
     <div>
-      <div class="eyebrow">Module Entrepreneuriat · Licences SDSI et GEII</div>
-      <h1>Dirigez une start-up du Souss pendant trois ans.</h1>
+      <div class="eyebrow">Module Entrepreneuriat · Bachelor SDSI et GEII</div>
+      <h1>Dirigez une start-up du Sud pendant trois ans.</h1>
       <p>Chaque trimestre, fixez vos prix, votre marketing, votre R&D et vos recrutements, menez des entretiens clients et mobilisez les dispositifs marocains de financement. Votre objectif : une entreprise solvable et la plus grande valeur possible pour les fondateurs à la fin du trimestre T12.</p>
     </div>
     <div class="facts">
@@ -949,7 +949,7 @@ function renderSetup() {
           : 'Frais de création de 6 000 DH et 3 000 DH de frais de gestion par trimestre. Impôt sur les sociétés de 20 % du bénéfice (cotisation minimale de 0,25 % du chiffre d’affaires). Ouvre la levée de fonds.'}</div>
       </div>
       <label class="check" style="grid-column:1/-1"><input type="checkbox" id="incub" ${cfg.incub ? 'checked' : ''}>
-        <span><b>Candidater à l’incubateur de la Cité de l’Innovation Souss-Massa</b><br><span class="small muted">Loyer de 3 000 DH par trimestre au lieu de 9 000 DH, et accès aux dispositifs Innov Invest (subvention Tech Start, prêt d’honneur). Vous pourrez aussi y entrer plus tard.</span></span></label>
+        <span><b>Candidater à l’incubateur de l’Université Ibn Zohr</b><br><span class="small muted">Loyer de 3 000 DH par trimestre au lieu de 9 000 DH, et accès aux dispositifs Innov Invest (subvention Tech Start, prêt d’honneur). Vous pourrez aussi y entrer plus tard.</span></span></label>
     </div>
     <div class="row" style="margin-top:18px;justify-content:space-between">
       <span class="small muted">Projet choisi : <b>${sc.name}</b></span>
@@ -963,7 +963,7 @@ function renderSetup() {
   $('#apport').oninput = e => { cfg.apport = +e.target.value; $('#apportOut').textContent = fmt(cfg.apport); saveCfg(); };
   $('#incub').onchange = e => { cfg.incub = e.target.checked; saveCfg(); };
   $('#start').onclick = () => {
-    const code = (cfg.code || '').trim() || 'SOUSS-2026';
+    const code = (cfg.code || '').trim() || 'SUD-2026';
     G = E.newGame(Object.assign({}, cfg, { code, equipe: cfg.equipe.trim() }));
     E.startQuarter(G); save(); render(); window.scrollTo({ top: 0 });
   };
@@ -1110,7 +1110,7 @@ function financeHTML() {
   return `<div class="fin">
     ${it('apport', 'Apport complémentaire des associés', `Épargne disponible : ${fmt(G.savings)}`, el.apport,
       `<select id="f-apport" aria-label="Montant de l’apport">${[10000, 20000, 30000, 50000, 75000, 100000, 150000].filter(v => v <= G.savings).concat(G.savings % 10000 && G.savings < 150000 ? [G.savings] : []).map(v => `<option value="${v}" ${v === finAmt.apport ? 'selected' : ''}>${fmt(v)}</option>`).join('')}</select><button class="btn" data-fin="apport">Apporter</button>`)}
-    ${it('incub', 'Incubateur Cité de l’Innovation Souss-Massa', 'Loyer réduit à 3 000 DH ; ouvre Tech Start et le prêt d’honneur', el.incub, '<button class="btn" data-fin="incub">Entrer à l’incubateur</button>')}
+    ${it('incub', 'Incubateur de l’Université Ibn Zohr', 'Loyer réduit à 3 000 DH ; ouvre Tech Start et le prêt d’honneur', el.incub, '<button class="btn" data-fin="incub">Entrer à l’incubateur</button>')}
     ${it('intelaka', 'Crédit bancaire Intelaka', 'Taux de 2 %, garanti par Tamwilcom ; remboursement sur 5 ans après 1 an de différé ; complété par un prêt Start-TPE à 0 %', el.intelaka,
       `${slider('intelaka', 'Montant demandé', 50000, 500000, 10000, finAmt.intelaka, fmt)}<span class="small muted" id="intelakaP">Chances : ${chance(E.intelakaProb(G, finAmt.intelaka))}</span><button class="btn" data-fin="intelaka">Déposer le dossier</button>`)}
     ${sc.innov ? it('techStart', 'Subvention Tech Start (Innov Invest)', '80 % des dépenses de R&D remboursées jusqu’au prototype, dans la limite de 200 000 DH ; non remboursable', el.techStart,
@@ -1406,7 +1406,7 @@ function renderEnd() {
     catch (e) { ta.focus(); ta.select(); $('#copyMsg').textContent = 'Texte sélectionné : copiez-le avec Ctrl+C.'; }
   };
   if ($('#publish')) $('#publish').onclick = publishScore;
-  if ($('#dl')) $('#dl').onclick = () => downloadText(`startup-souss-${(G.equipe || 'equipe').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase()}-${G.code.toLowerCase()}.txt`, $('#fiche').value);
+  if ($('#dl')) $('#dl').onclick = () => downloadText(`startup-sud-${(G.equipe || 'equipe').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase()}-${G.code.toLowerCase()}.txt`, $('#fiche').value);
   if (localMode() && !G.recorded) {
     G.recorded = true; save();
     const f = E.finalScore(G);
@@ -1481,7 +1481,7 @@ function renderLocalBoard() {
     const q = v => '"' + String(v).replace(/"/g, '""') + '"';
     const lines = [['Rang', 'Équipe', 'Projet', 'Code', 'Valeur fondateurs (DH)', 'Clients', 'CA cumulé (DH)', 'Résultat cumulé (DH)', 'Issue', 'Entretiens'].map(q).join(';')]
       .concat(rows.map((r, i) => [i + 1, r.e, S[r.s].name, r.c, r.v, r.n, r.ca, r.r, r.ok ? 'En activité' : 'Faillite', r.q].map(q).join(';')));
-    downloadText('classement-startup-souss.csv', '\ufeff' + lines.join('\r\n'), 'text/csv');
+    downloadText('classement-startup-sud.csv', '\ufeff' + lines.join('\r\n'), 'text/csv');
   };
   app.querySelectorAll('[data-bf]').forEach(b => b.onclick = () => { boardFilter.scen = b.dataset.bf; renderLocalBoard(); });
   const bc = $('#bcode'); if (bc) bc.onchange = e => { boardFilter.code = e.target.value; renderLocalBoard(); };
